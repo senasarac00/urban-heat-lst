@@ -6,12 +6,6 @@ import logging
 from pathlib import Path
 import sys
 
-from src.landcover import (
-    compute_hotspot_landcover_distribution,
-    compute_landcover_lst_stats,
-    enrich_hotspots_with_landcover,
-    fetch_and_align_worldcover,
-)
 from urban_heat_lst.analysis import (
     classify_lst,
     compute_statistics,
@@ -21,6 +15,12 @@ from urban_heat_lst.analysis import (
 )
 from urban_heat_lst.config import load_aoi, load_config
 from urban_heat_lst.indices import compute_lst_celsius, compute_ndvi
+from urban_heat_lst.landcover import (
+    compute_hotspot_landcover_distribution,
+    compute_landcover_lst_stats,
+    enrich_hotspots_with_landcover,
+    fetch_and_align_worldcover,
+)
 from urban_heat_lst.preprocessing import load_and_preprocess_scene
 from urban_heat_lst.stac_search import search_best_landsat_scene
 from urban_heat_lst.visualization import generate_all_maps

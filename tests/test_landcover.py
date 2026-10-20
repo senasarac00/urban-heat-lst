@@ -4,13 +4,13 @@ import numpy as np
 from rasterio.crs import CRS
 from rasterio.transform import from_origin
 
-from src.landcover import (
+from urban_heat_lst.analysis import classify_lst, extract_hotspot_vectors
+from urban_heat_lst.landcover import (
     align_categorical_raster_mode,
     compute_hotspot_landcover_distribution,
     compute_landcover_lst_stats,
     enrich_hotspots_with_landcover,
 )
-from urban_heat_lst.analysis import classify_lst, extract_hotspot_vectors
 
 
 def test_align_categorical_raster_mode() -> None:

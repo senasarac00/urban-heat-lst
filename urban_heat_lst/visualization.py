@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from src.landcover import WORLDCOVER_CLASSES, WORLDCOVER_COLORS
 from urban_heat_lst.analysis import CLASS_LABELS, UHIStatistics
+from urban_heat_lst.landcover import WORLDCOVER_CLASSES, WORLDCOVER_COLORS
 
 logger = logging.getLogger(__name__)
 
