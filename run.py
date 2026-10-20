@@ -6,6 +6,12 @@ import logging
 from pathlib import Path
 import sys
 
+from src.landcover import (
+    compute_hotspot_landcover_distribution,
+    compute_landcover_lst_stats,
+    enrich_hotspots_with_landcover,
+    fetch_and_align_worldcover,
+)
 from urban_heat_lst.analysis import (
     classify_lst,
     compute_statistics,
@@ -30,7 +36,7 @@ def setup_logging() -> None:
 
 
 def run_pipeline(config_path: str | Path = "config.yaml") -> dict[str, Path]:
-    """Execute the complete end-to-end Urban Heat Island analysis workflow.
+    """Execute the complete end-to-end Urban Heat Island & Land Cover analysis workflow.
 
     Args:
         config_path: Path to the YAML configuration file.
@@ -41,7 +47,7 @@ def run_pipeline(config_path: str | Path = "config.yaml") -> dict[str, Path]:
     logger = logging.getLogger("urban_heat_lst.runner")
 
     # 1. Load configuration and AOI
-    logger.info("Step 1/6: Loading configuration from %s", config_path)
+    logger.info("Step 1/7: Loading configuration from %s", config_path)
     cfg = load_config(config_path)
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
     aoi_gdf, aoi_geojson = load_aoi(cfg.aoi_path)
@@ -49,7 +55,7 @@ def run_pipeline(config_path: str | Path = "config.yaml") -> dict[str, Path]:
 
     # 2. Search Planetary Computer STAC for the least-cloudy Landsat 8/9 scene with season filter
     logger.info(
-        "Step 2/6: Searching Landsat 8/9 Collection 2 Level-2 scenes (%s, months=%s, cloud < %.1f%%)",
+        "Step 2/7: Searching Landsat 8/9 Collection 2 Level-2 scenes (%s, months=%s, cloud < %.1f%%)",
         cfg.date_range,
         cfg.season_months,
         cfg.max_cloud_cover,
@@ -63,7 +69,7 @@ def run_pipeline(config_path: str | Path = "config.yaml") -> dict[str, Path]:
 
     # 3. Apply QA_PIXEL bitmask (clouds, shadows, snow, water) and clip to AOI
     logger.info(
-        "Step 3/6: Applying QA_PIXEL mask (bits=%s) and clipping to AOI",
+        "Step 3/7: Applying QA_PIXEL mask (bits=%s) and clipping to AOI",
         cfg.qa_mask_bits,
     )
     clipped = load_and_preprocess_scene(
@@ -73,16 +79,49 @@ def run_pipeline(config_path: str | Path = "config.yaml") -> dict[str, Path]:
     )
 
     # 4. Compute LST in Celsius and NDVI
-    logger.info("Step 4/6: Computing LST (°C) from ST_B10 and NDVI from SR_B4/SR_B5")
+    logger.info("Step 4/7: Computing LST (°C) from ST_B10 and NDVI from SR_B4/SR_B5")
     lst_c = compute_lst_celsius(clipped.st_b10)
     ndvi = compute_ndvi(clipped.sr_b4, clipped.sr_b5)
 
-    # 5. Classify LST (μ ± σ from post-masked valid pixels), sieve, and extract hotspot polygons
+    # 5. Fetch ESA WorldCover and align to 30m LST grid via mode resampling
+    logger.info("Step 5/7: Downloading ESA WorldCover and aligning to 30m LST grid (mode)")
+    worldcover = fetch_and_align_worldcover(
+        aoi_geojson=aoi_geojson,
+        target_profile=clipped.profile,
+    )
+    wc_tif_path = save_geotiff(
+        worldcover,
+        clipped.profile,
+        cfg.output_dir / "worldcover_30m.tif",
+        dtype="uint8",
+        nodata=0,
+    )
+
+    # Compute zonal LST statistics per land cover class
+    transform = clipped.profile["transform"]
+    pixel_area_ha = abs(float(transform.a) * float(transform.e)) / 10_000.0
+    lc_stats_df = compute_landcover_lst_stats(
+        lst_c=lst_c,
+        worldcover=worldcover,
+        valid_mask=clipped.valid_mask,
+        pixel_area_ha=pixel_area_ha if pixel_area_ha > 0 else 0.09,
+    )
+    lc_stats_csv_path = cfg.output_dir / "landcover_lst_stats.csv"
+    lc_stats_df.to_csv(lc_stats_csv_path, index=False)
+    logger.info("Saved per-class land cover LST statistics: %s", lc_stats_csv_path)
+
+    # 6. Classify LST (μ ± σ of valid pixels or Built-up pixels when urban_only=True), sieve, and extract hotspots
     logger.info(
-        "Step 5/6: Classifying LST (μ ± σ of valid pixels) and extracting hotspots (min_area_ha=%.2f)",
+        "Step 6/7: Classifying LST (urban_only=%s) and extracting hotspots (min_area_ha=%.2f)",
+        cfg.urban_only,
         cfg.min_area_ha,
     )
-    classified_lst, thresholds = classify_lst(lst_c, valid_mask=clipped.valid_mask)
+    classified_lst, thresholds = classify_lst(
+        lst_c,
+        valid_mask=clipped.valid_mask,
+        worldcover=worldcover,
+        urban_only=cfg.urban_only,
+    )
     logger.info(
         "LST Class Thresholds (°C): [%.2f, %.2f, %.2f, %.2f]",
         thresholds[0],
@@ -97,6 +136,16 @@ def run_pipeline(config_path: str | Path = "config.yaml") -> dict[str, Path]:
         min_class=cfg.hotspot_min_class,
         min_area_ha=cfg.min_area_ha,
     )
+    hotspots_gdf = enrich_hotspots_with_landcover(
+        hotspots_gdf=hotspots_gdf,
+        worldcover=worldcover,
+        profile=clipped.profile,
+    )
+    hotspot_lc_dist_df = compute_hotspot_landcover_distribution(
+        hotspots_gdf=hotspots_gdf,
+        worldcover=worldcover,
+        profile=clipped.profile,
+    )
 
     acq_date = str(
         best_item.properties.get(
@@ -104,17 +153,22 @@ def run_pipeline(config_path: str | Path = "config.yaml") -> dict[str, Path]:
             best_item.datetime.isoformat() if best_item.datetime else "unknown",
         )
     )
+    stats_valid_mask = (
+        clipped.valid_mask & (worldcover == 50)
+        if cfg.urban_only
+        else clipped.valid_mask
+    )
     stats = compute_statistics(
         lst_c=lst_c,
         ndvi=ndvi,
         hotspots_gdf=hotspots_gdf,
         scene_id=best_item.id,
         acquisition_date=acq_date,
-        valid_mask=clipped.valid_mask,
+        valid_mask=stats_valid_mask,
     )
 
-    # 6. Export GeoTIFFs, GeoPackage, CSV, and PNG maps
-    logger.info("Step 6/6: Exporting rasters, hotspot vectors, statistics CSV, and maps")
+    # 7. Export GeoTIFFs, GeoPackage, CSV, and PNG maps
+    logger.info("Step 7/7: Exporting rasters, hotspot vectors, statistics CSV, and maps")
     lst_tif_path = save_geotiff(
         lst_c,
         clipped.profile,
@@ -133,7 +187,7 @@ def run_pipeline(config_path: str | Path = "config.yaml") -> dict[str, Path]:
     hotspots_path = cfg.output_dir / "hotspots.gpkg"
     hotspots_gdf.to_file(hotspots_path, driver="GPKG", layer="hotspots")
     logger.info(
-        "Saved %d hotspot polygons (%.2f ha) to %s",
+        "Saved %d enriched hotspot polygons (%.2f ha) to %s",
         len(hotspots_gdf),
         stats.hotspot_area_ha,
         hotspots_path,
@@ -147,6 +201,8 @@ def run_pipeline(config_path: str | Path = "config.yaml") -> dict[str, Path]:
         profile=clipped.profile,
         stats=stats,
         output_dir=cfg.output_dir,
+        worldcover=worldcover,
+        hotspot_lc_dist_df=hotspot_lc_dist_df,
     )
 
     logger.info(
@@ -160,8 +216,10 @@ def run_pipeline(config_path: str | Path = "config.yaml") -> dict[str, Path]:
     return {
         "lst_geotiff": lst_tif_path,
         "classified_geotiff": class_tif_path,
+        "worldcover_geotiff": wc_tif_path,
         "hotspots_gpkg": hotspots_path,
         "statistics_csv": csv_path,
+        "landcover_lst_stats_csv": lc_stats_csv_path,
         **map_paths,
     }
 
@@ -169,7 +227,7 @@ def run_pipeline(config_path: str | Path = "config.yaml") -> dict[str, Path]:
 def main() -> int:
     """Parse CLI arguments and invoke the pipeline."""
     parser = argparse.ArgumentParser(
-        description="urban-heat-lst: Urban Heat Island analysis tool using Landsat 8/9 C2 L2."
+        description="urban-heat-lst: Urban Heat Island & Land Cover analysis tool using Landsat 8/9 C2 L2 and ESA WorldCover."
     )
     parser.add_argument(
         "-c",

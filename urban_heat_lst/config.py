@@ -23,6 +23,7 @@ class PipelineConfig:
     season_months: list[int] = field(default_factory=lambda: list(DEFAULT_SEASON_MONTHS))
     hotspot_min_class: int = 5
     min_area_ha: float = 0.5
+    urban_only: bool = False
     output_dir: Path = Path("outputs")
 
 
@@ -85,6 +86,8 @@ def load_config(config_path: str | Path = "config.yaml") -> PipelineConfig:
     if min_area_ha < 0.0:
         raise ValueError("min_area_ha must be non-negative.")
 
+    urban_only = bool(raw.get("urban_only", False))
+
     return PipelineConfig(
         aoi_path=aoi_path,
         date_range=str(raw["date_range"]),
@@ -93,6 +96,7 @@ def load_config(config_path: str | Path = "config.yaml") -> PipelineConfig:
         season_months=season_months,
         hotspot_min_class=hotspot_min_class,
         min_area_ha=min_area_ha,
+        urban_only=urban_only,
         output_dir=output_dir,
     )
 

@@ -45,6 +45,8 @@ class UHIStatistics:
 def classify_lst(
     lst_c: np.ndarray,
     valid_mask: np.ndarray | None = None,
+    worldcover: np.ndarray | None = None,
+    urban_only: bool = False,
 ) -> tuple[np.ndarray, list[float]]:
     """Classify Land Surface Temperature into 5 UHI classes based on Mean ± SD of valid pixels.
 
@@ -58,7 +60,9 @@ def classify_lst(
     Args:
         lst_c: 2D float NumPy array of LST in Celsius (NaN for NoData).
         valid_mask: Optional boolean mask of valid pixels after QA_PIXEL masking.
-            Both μ and σ are computed strictly from valid post-masked pixels.
+        worldcover: Optional 2D uint8 array of aligned ESA WorldCover classes.
+        urban_only: If True, compute μ and σ strictly from WorldCover Built-up (50) pixels
+            and apply classification only to Built-up pixels.
 
     Returns:
         Tuple of (2D uint8 classified array, list of 4 threshold values [t1, t2, t3, t4]).
@@ -69,6 +73,11 @@ def classify_lst(
     valid = np.isfinite(lst_c)
     if valid_mask is not None:
         valid = valid & valid_mask.astype(bool)
+
+    if urban_only:
+        if worldcover is None:
+            raise ValueError("worldcover array is required when urban_only=True.")
+        valid = valid & (worldcover == 50)
 
     if not np.any(valid):
         raise ValueError("LST array contains no valid finite pixels to classify.")

@@ -10,4 +10,5 @@ qa_mask_bits: [0, 1, 2, 3, 4, 5, 7]
 
 hotspot_min_class: 5
 min_area_ha: 0.5                  # Minimum hotspot area in hectares (applied via rasterio.features.sieve)
+urban_only: false                 # When true, μ and σ are computed only from WorldCover Built-up (50) pixels
 output_dir: "outputs"
