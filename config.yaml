@@ -1,0 +1,13 @@
+# Configuration for urban-heat-lst pipeline
+aoi_path: "data/antalya_center.geojson"
+date_range: "2024-01-01/2024-12-31"
+season_months: [6, 7, 8]          # Default: June-August (summer months)
+max_cloud_cover: 15.0
+
+# Landsat Collection 2 QA_PIXEL bits to mask out:
+# 0: Fill, 1: Dilated Cloud, 2: Cirrus, 3: Cloud, 4: Cloud Shadow, 5: Snow, 7: Water
+qa_mask_bits: [0, 1, 2, 3, 4, 5, 7]
+
+hotspot_min_class: 5
+min_area_ha: 0.5                  # Minimum hotspot area in hectares (applied via rasterio.features.sieve)
+output_dir: "outputs"
