@@ -168,5 +168,5 @@ This project is licensed under the **MIT License** — Copyright (c) 2026 **Sena
 **Sena Saraç**  
 *GIS & Remote Sensing Specialist*  
 📍 Antalya, Türkiye  
-- **LinkedIn**: `[YOUR_LINKEDIN_URL_HERE]`
-- **E-mail**: `[YOUR_EMAIL_HERE]`
+- **LinkedIn**: [https://www.linkedin.com/in/sena-sara%C3%A7-6a639b19a](https://www.linkedin.com/in/sena-sara%C3%A7-6a639b19a)
+- **E-mail**: [senasarac00@gmail.com](mailto:senasarac00@gmail.com)
