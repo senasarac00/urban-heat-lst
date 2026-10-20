@@ -1,0 +1,28 @@
+# Python byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Raw downloaded data (keep sample AOI GeoJSON)
+data/*
+!data/antalya_center.geojson
+
+# Outputs and large geospatial files (GeoTIFF, GeoPackage, etc.)
+outputs/
+*.tif
+*.tiff
+*.gpkg
+*.shp
+*.shx
+*.dbf
+*.prj
+
+# OS / IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
