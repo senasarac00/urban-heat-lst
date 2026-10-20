@@ -4,6 +4,11 @@
 
 `urban-heat-lst` is a modular, command-line Python tool that automates the detection, classification, and mapping of Urban Heat Islands (UHI) using **Landsat 8 & 9 Collection 2 Level-2** satellite imagery and **ESA WorldCover (10 m)** land cover data streamed directly from the **Microsoft Planetary Computer STAC API**.
 
+### Key Findings (Antalya Central Districts — 15 August 2024)
+- **Warmest Land Cover Class**: Harvested/dry **Cropland (`40`)** recorded the highest daytime mean LST at **`48.26 °C`** (followed by **Shrubland** at `46.51 °C` and **Grassland** at `46.49 °C`), exceeding urban surfaces during the ~11:30 local overpass.
+- **Urban (`Built-up`) Surface Temperature**: **Built-up (`50`)** areas (covering `15,729.39 ha`) exhibited a daytime mean LST of **`43.95 °C`** ($\sigma = 2.35\ ^\circ\text{C}$, median `43.87 °C`, max `53.87 °C`).
+- **Intra-Urban Hotspots (`urban_only: true`)**: Isolating the urban fabric identified **`349` extreme urban thermal hotspot polygons** ($\ge 47.47\ ^\circ\text{C}$, each $\ge 0.5\text{ ha}$) covering a total area of **`826.38 ha`**.
+
 ---
 
 ## Sample Results — Antalya Central Districts (15 August 2024)
@@ -43,8 +48,8 @@ Using `urban_heat_lst/landcover.py`, the pipeline retrieves the latest **ESA Wor
 
 ### Interpretation / Yorum
 
-- **English**: Because the Landsat 8/9 overpass occurs at approximately **11:30 local time** (`08:33 UTC`), the derived values represent **daytime Land Surface Temperature (LST)** rather than nighttime air temperature. In this daytime observation, harvested or dry agricultural fields (`Cropland`: `48.26 °C`) and dry herbaceous areas (`Grassland`: `46.49 °C`, `Shrubland`: `46.51 °C`) appear warmer than `Built-up` urban areas (`43.95 °C`). This pattern—where dry rural soils warm rapidly under morning solar radiation—is a commonly observed phenomenon in Mediterranean climates during summer. To evaluate thermal variations strictly within the urban fabric (`Built-up = 50`), enable `urban_only: true` in `config.yaml` ($\mu = 43.95\ ^\circ\text{C}$, $\sigma = 2.35\ ^\circ\text{C}$, `349` urban hotspots covering `826.38 ha`).
-- **Türkçe (Yorum)**: Landsat uydusunun geçiş saati yerel saatle yaklaşık **11:30** (`08:33 UTC`) olduğundan, elde edilen sonuçlar **gündüz yüzey sıcaklığını (LST)** yansıtmaktadır. Bu gözlemde tarım (`48.26 °C`) ve çayır/çalılık (`46.49–46.51 °C`) alanlarının kentsel yapılaşma alanlarından (`43.95 °C`) daha sıcak çıkması, yaz aylarında kuru toprak yüzeylerin sabah güneşlenme süresince hızlı ısınmasıyla ilişkili olup Akdeniz ikliminde bilinen bir durumdur. Çevredeki kırsal kuru alanların etkisini dışarıda bırakarak yalnızca kentsel doku (`Built-up = 50`) içindeki ısı adalarını analiz etmek için `config.yaml` dosyasında `urban_only: true` seçeneği kullanılabilir ($\mu = 43.95\ ^\circ\text{C}$, $\sigma = 2.35\ ^\circ\text{C}$, `349` kentsel sıcak nokta poligonu, toplam `826.38 ha`).
+- **English**: Because the Landsat 8/9 overpass occurs at approximately **11:30 local time** (`08:33 UTC`), the derived values represent **daytime Land Surface Temperature (LST)** rather than nighttime air temperature. In this daytime observation, harvested or dry agricultural fields (`Cropland`: `48.26 °C`) and dry herbaceous areas (`Grassland`: `46.49 °C`, `Shrubland`: `46.51 °C`) appear warmer than `Built-up` urban areas (`43.95 °C`). This pattern—where dry rural soils warm rapidly under **late-morning** solar radiation—is a commonly observed phenomenon in Mediterranean climates during summer. To evaluate thermal variations strictly within the urban fabric (`Built-up = 50`), enable `urban_only: true` in `config.yaml` ($\mu = 43.95\ ^\circ\text{C}$, $\sigma = 2.35\ ^\circ\text{C}$, `349` urban hotspots covering `826.38 ha`).
+- **Türkçe (Yorum)**: Landsat uydusunun geçiş saati yerel saatle yaklaşık **11:30** (`08:33 UTC`) olduğundan, elde edilen sonuçlar **gündüz Arazi Yüzey Sıcaklığını (AYS)** yansıtmaktadır. Bu gözlemde tarım (`48.26 °C`) ve çayır/çalılık (`46.49–46.51 °C`) alanlarının kentsel yapılaşma alanlarından (`43.95 °C`) daha sıcak çıkması, yaz aylarında kuru toprak yüzeylerin **öğleye yakın** saatlerde hızlı ısınmasıyla ilişkili olup Akdeniz ikliminde bilinen bir durumdur. Çevredeki kırsal kuru alanların etkisini dışarıda bırakarak yalnızca kentsel doku (`Built-up = 50`) içindeki ısı adalarını analiz etmek için `config.yaml` dosyasında `urban_only: true` seçeneği kullanılabilir ($\mu = 43.95\ ^\circ\text{C}$, $\sigma = 2.35\ ^\circ\text{C}$, `349` kentsel sıcak nokta poligonu, toplam `826.38 ha`).
 
 ---
 
@@ -140,14 +145,14 @@ pytest tests/
 
 ## Türkçe Özet (Turkish Summary)
 
-**`urban-heat-lst`**, uydu görüntüleri ve **ESA WorldCover** arazi örtüsü verilerini kullanarak şehirlerdeki **Kentsel Isı Adası (Urban Heat Island - UHI)** etkisini otomatik olarak analiz eden açık kaynaklı bir Python aracıdır.
+**`urban-heat-lst`**, uydu görüntüleri ve **ESA WorldCover** arazi örtüsü verilerini kullanarak şehirlerdeki **Kentsel Isı Adası (Urban Heat Island - UHI)** ve **Arazi Yüzey Sıcaklığı (AYS)** dağılımını otomatik olarak analiz eden açık kaynaklı bir Python aracıdır.
 
 ### Nasıl Çalışır?
 1. **Yapılandırma (`config.yaml`)**: Çalışma alanı sınırlarını (`data/antalya_center.geojson` - Antalya merkez ilçeleri), tarih aralığını, mevsim filtresini (`season_months: [6, 7, 8]`), maksimum bulutluluk oranını, maskelenecek `QA_PIXEL` bit listesini (`qa_mask_bits: [0, 1, 2, 3, 4, 5, 7]`), minimum sıcak nokta alanını (`min_area_ha: 0.5`) ve yalnızca kentsel alanı analiz etme seçeneğini (`urban_only: false`) okur.
 2. **Uydu Görüntüsü Arama (`urban_heat_lst/stac_search.py`)**: Microsoft Planetary Computer STAC API üzerinden **Landsat 8/9 Collection 2 Level-2** arşivini tarar, yaz mevsimi filtresini uygular ve en az bulutlu görüntüyü seçer.
 3. **Ön İşleme ve Maskeleme (`urban_heat_lst/preprocessing.py`)**: `QA_PIXEL` kalite bandında tanımlı bitleri (bulut, gölge, kar [Bit 5] ve su [Bit 7]) maskeler ve çalışma alanına göre kırpar.
-4. **LST ve NDVI Hesaplama (`urban_heat_lst/indices.py`)**: `ST_B10` bandını **Celsius (°C)** cinsinden Yer Yüzey Sıcaklığına (LST) dönüştürür ve **NDVI** hesaplar.
-5. **Arazi Örtüsü Analizi (`urban_heat_lst/landcover.py`)**: Planetary Computer üzerinden en güncel **ESA WorldCover** verisini indirir, `mode` (çoğunluk) yöntemiyle 30 m LST gridine hizalar, her arazi örtüsü sınıfı için sıcaklık istatistiklerini (`outputs/landcover_lst_stats.csv`) hesaplar ve sıcak nokta poligonlarına baskın arazi örtüsü ile sınıf yüzdelerini (`pct_urban`, `pct_agriculture`, `pct_bare`, `pct_other`) ekler. `urban_only: true` yapıldığında $\mu$ ve $\sigma$ yalnızca `Built-up (50)` kentsel piksellerinden hesaplanır.
+4. **AYS (LST) ve NDVI Hesaplama (`urban_heat_lst/indices.py`)**: `ST_B10` bandını **Celsius (°C)** cinsinden **Arazi Yüzey Sıcaklığına (AYS)** dönüştürür ve **NDVI** hesaplar.
+5. **Arazi Örtüsü Analizi (`urban_heat_lst/landcover.py`)**: Planetary Computer üzerinden en güncel **ESA WorldCover** verisini indirir, `mode` (çoğunluk) yöntemiyle 30 m AYS gridine hizalar, her arazi örtüsü sınıfı için sıcaklık istatistiklerini (`outputs/landcover_lst_stats.csv`) hesaplar ve sıcak nokta poligonlarına baskın arazi örtüsü ile sınıf yüzdelerini (`pct_urban`, `pct_agriculture`, `pct_bare`, `pct_other`) ekler. `urban_only: true` yapıldığında $\mu$ ve $\sigma$ yalnızca `Built-up (50)` kentsel piksellerinden hesaplanır.
 6. **Sınıflandırma ve Sıcak Nokta Vektörleştirme (`urban_heat_lst/analysis.py`)**: `rasterio.features.sieve` ile `0.5 ha` altındaki gürültü kümelerini temizler ve sıcak noktaları `outputs/hotspots.gpkg` olarak kaydeder.
 
 ---
@@ -155,3 +160,13 @@ pytest tests/
 ## License
 
 This project is licensed under the **MIT License** — Copyright (c) 2026 **Sena Saraç**. See the [LICENSE](LICENSE) file for details.
+
+---
+
+## Author / Yazar
+
+**Sena Saraç**  
+*GIS & Remote Sensing Specialist*  
+📍 Antalya, Türkiye  
+- **LinkedIn**: `[YOUR_LINKEDIN_URL_HERE]`
+- **E-mail**: `[YOUR_EMAIL_HERE]`
